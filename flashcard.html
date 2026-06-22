@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CSC830 — Flashcards</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+  :root{
+    --ink:#1a1a2e;--paper:#f7f6f2;--rule:#d4cfc4;--accent:#2d4a8a;--accent-light:#e8edf7;
+    --accent2:#8a2d2d;--accent2-light:#f7e8e8;--gold:#b5891a;--gold-light:#fdf4e0;
+    --green:#1a6b3a;--green-light:#e6f4ec;--violet:#5a3d8a;--violet-light:#efeaf7;
+    --mono:'IBM Plex Mono',monospace;--serif:'IBM Plex Serif',Georgia,serif;--sans:'Inter',system-ui,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.6;}
+
+  .masthead{background:var(--ink);color:#fff;padding:2rem 2rem 1.6rem;text-align:center;border-bottom:4px solid var(--accent);}
+  .masthead .eyebrow{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.2em;text-transform:uppercase;color:#a0a8c0;margin-bottom:0.6rem;}
+  .masthead h1{font-family:var(--serif);font-size:clamp(1.6rem,4.5vw,2.4rem);font-weight:600;}
+  .masthead .subtitle{font-size:0.9rem;color:#8090b0;margin-top:0.3rem;}
+
+  nav{background:#fff;border-bottom:1px solid var(--rule);padding:0.7rem 1rem;position:sticky;top:0;z-index:100;display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;align-items:center;}
+  .modebtn{font-family:var(--mono);font-size:0.78rem;letter-spacing:0.06em;color:var(--accent);background:#fff;border:1px solid var(--accent);border-radius:3px;padding:0.4rem 1.1rem;cursor:pointer;transition:all .15s;}
+  .modebtn.active{background:var(--accent);color:#fff;}
+  .modebtn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+  .container{max-width:760px;margin:0 auto;padding:1.5rem 1.2rem 3rem;}
+
+  /* filter row */
+  .filters{display:flex;gap:0.35rem;flex-wrap:wrap;justify-content:center;margin-bottom:1.2rem;}
+  .chip{font-family:var(--mono);font-size:0.68rem;letter-spacing:0.04em;color:var(--accent);background:#fff;border:1px solid var(--rule);border-radius:20px;padding:0.25rem 0.7rem;cursor:pointer;transition:all .15s;}
+  .chip.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .chip:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+
+  /* progress bar */
+  .progress-wrap{display:flex;align-items:center;gap:0.8rem;margin-bottom:1rem;font-family:var(--mono);font-size:0.7rem;color:#777;}
+  .bar{flex:1;height:6px;background:var(--rule);border-radius:3px;overflow:hidden;}
+  .bar > i{display:block;height:100%;width:0;background:var(--green);transition:width .3s;}
+
+  /* ===== STUDY MODE ===== */
+  .card-stage{perspective:1600px;margin:0 auto;}
+  .flip{position:relative;width:100%;min-height:320px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer;}
+  .flip.flipped{transform:rotateY(180deg);}
+  .face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--rule);border-radius:8px;background:#fff;padding:2rem 1.8rem;display:flex;flex-direction:column;justify-content:center;}
+  .face .ptag{position:absolute;top:1rem;left:1.3rem;font-family:var(--mono);font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;}
+  .face .hint{position:absolute;bottom:1rem;left:0;right:0;text-align:center;font-family:var(--mono);font-size:0.6rem;letter-spacing:0.1em;color:#aaa;}
+  .front{background:var(--ink);color:#fff;border-color:var(--ink);}
+  .front .ptag{color:#6e86c0;}
+  .front .q{font-family:var(--serif);font-size:1.3rem;line-height:1.4;text-align:center;}
+  .back{transform:rotateY(180deg);background:var(--gold-light);}
+  .back .ptag{color:var(--gold);}
+  .back .a{font-size:1.05rem;text-align:center;}
+  .back code,.front code{font-family:var(--mono);font-size:0.9em;background:rgba(0,0,0,0.07);padding:0.05rem 0.3rem;border-radius:2px;}
+  .front code{background:rgba(255,255,255,0.16);}
+
+  .controls{display:flex;gap:0.6rem;justify-content:center;margin-top:1.4rem;flex-wrap:wrap;}
+  .btn{font-family:var(--mono);font-size:0.74rem;letter-spacing:0.04em;border:1px solid var(--accent);background:#fff;color:var(--accent);border-radius:4px;padding:0.5rem 1rem;cursor:pointer;transition:all .15s;}
+  .btn:hover{background:var(--accent-light);}
+  .btn:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  .btn.primary{background:var(--accent);color:#fff;}
+  .btn.good{border-color:var(--green);color:var(--green);}
+  .btn.good:hover{background:var(--green-light);}
+  .btn.warn{border-color:var(--gold);color:var(--gold);}
+  .btn.warn:hover{background:var(--gold-light);}
+  .counter{text-align:center;font-family:var(--mono);font-size:0.72rem;color:#888;margin-top:0.9rem;}
+
+  /* ===== QUIZ MODE ===== */
+  .quiz-card{background:#fff;border:1px solid var(--rule);border-radius:8px;padding:1.6rem 1.5rem;}
+  .quiz-card .ptag{font-family:var(--mono);font-size:0.6rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--accent);margin-bottom:0.6rem;}
+  .quiz-q{font-family:var(--serif);font-size:1.25rem;line-height:1.4;margin-bottom:1.3rem;}
+  .opts{display:flex;flex-direction:column;gap:0.6rem;}
+  .opt{text-align:left;font-size:0.98rem;border:1px solid var(--rule);background:#fff;border-radius:5px;padding:0.7rem 1rem;cursor:pointer;transition:all .12s;font-family:var(--sans);color:var(--ink);}
+  .opt:hover{border-color:var(--accent);background:var(--accent-light);}
+  .opt:focus-visible{outline:2px solid var(--gold);outline-offset:2px;}
+  .opt.correct{border-color:var(--green);background:var(--green-light);color:var(--green);font-weight:600;}
+  .opt.wrong{border-color:var(--accent2);background:var(--accent2-light);color:var(--accent2);}
+  .opt.disabled{cursor:default;pointer-events:none;opacity:0.85;}
+  .opt code{font-family:var(--mono);font-size:0.88em;}
+  .feedback{margin-top:1.1rem;font-size:0.9rem;min-height:1.4rem;}
+  .feedback.r{color:var(--green);font-weight:600;}
+  .feedback.w{color:var(--accent2);font-weight:600;}
+  .scoreline{font-family:var(--mono);font-size:0.72rem;color:#777;text-align:center;margin-top:1.1rem;}
+
+  footer{margin-top:2.5rem;padding:1.6rem;border-top:3px solid var(--ink);text-align:center;font-family:var(--mono);font-size:0.68rem;color:#999;}
+  footer .brand{color:var(--accent);}
+  .reset{background:none;border:none;color:#b08;font-family:var(--mono);font-size:0.66rem;cursor:pointer;text-decoration:underline;margin-top:0.5rem;}
+  @media (prefers-reduced-motion: reduce){ .flip{transition:none;} }
+</style>
+</head>
+<body>
+<div class="masthead">
+  <div class="eyebrow">M.Sc. Programme &middot; CSC830 Artificial Intelligence</div>
+  <h1>CSC830 Flashcards</h1>
+  <div class="subtitle">Study &amp; self-test &middot; Parts A&ndash;I &middot; Weeks 1&ndash;11</div>
+</div>
+
+<nav>
+  <button class="modebtn active" id="m-study" onclick="setMode('study')">STUDY</button>
+  <button class="modebtn" id="m-quiz" onclick="setMode('quiz')">QUIZ</button>
+</nav>
+
+<div class="container">
+  <div class="filters" id="filters"></div>
+  <div class="progress-wrap" id="progwrap">
+    <span id="proglabel">Mastered</span>
+    <div class="bar"><i id="progbar"></i></div>
+    <span id="progpct">0%</span>
+  </div>
+
+  <!-- STUDY -->
+  <div id="study">
+    <div class="card-stage">
+      <div class="flip" id="flip" onclick="toggleFlip()" tabindex="0" role="button" aria-label="Flip card">
+        <div class="face front"><div class="ptag" id="s-ptag-f"></div><div class="q" id="s-q"></div><div class="hint">tap / Space to flip</div></div>
+        <div class="face back"><div class="ptag" id="s-ptag-b"></div><div class="a" id="s-a"></div><div class="hint">tap to flip back</div></div>
+      </div>
+    </div>
+    <div class="counter" id="s-counter"></div>
+    <div class="controls">
+      <button class="btn" onclick="prevCard()">&larr; Prev</button>
+      <button class="btn good" onclick="mark(true)">&#10003; Got it</button>
+      <button class="btn warn" onclick="mark(false)">&#8635; Review</button>
+      <button class="btn" onclick="nextCard()">Next &rarr;</button>
+    </div>
+    <div class="controls">
+      <button class="btn" onclick="shuffleDeck()">Shuffle</button>
+      <button class="btn" onclick="resetMastery()">Clear mastery</button>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="quiz" style="display:none">
+    <div class="quiz-card">
+      <div class="ptag" id="q-ptag"></div>
+      <div class="quiz-q" id="q-q"></div>
+      <div class="opts" id="q-opts"></div>
+      <div class="feedback" id="q-fb"></div>
+    </div>
+    <div class="controls">
+      <button class="btn primary" id="q-next" onclick="nextQuiz()" style="display:none">Next question &rarr;</button>
+      <button class="btn" onclick="restartQuiz()">Restart quiz</button>
+    </div>
+    <div class="scoreline" id="q-score"></div>
+  </div>
+</div>
+
+<footer>
+  CSC830 &middot; Artificial Intelligence &middot; Department of Computer Science, Faculty of Computing &middot; Nile University of Nigeria<br>
+  Flashcards &middot; Presented by <span class="brand">Leternal Systems</span>
+  <br><button class="reset" onclick="hardReset()">reset all saved progress</button>
+</footer>
+
+<script>
+const CARDS = [{"id": 0, "p": "A", "q": "What three things does AI interplay between?", "a": "AI is the interplay of <strong>goal seeking<\/strong>, the <strong>data processing<\/strong> used to reach the goal, and the <strong>data acquisition<\/strong> used to understand the goal better.", "k": "Goal seeking, data processing, data acquisition"}, {"id": 1, "p": "A", "q": "Name the four approaches in Russell &amp; Norvig's matrix.", "a": "Acting humanly, thinking humanly, thinking rationally, acting rationally &mdash; behaviour vs. reasoning &times; human vs. ideal.", "k": "Acting/thinking &times; humanly/rationally"}, {"id": 2, "p": "A", "q": "Which four capabilities must a system combine to pass the Turing Test?", "a": "Natural language processing, knowledge representation, automated reasoning, and machine learning.", "k": "NLP, KR, automated reasoning, ML"}, {"id": 3, "p": "A", "q": "What does the Chinese Room argument claim?", "a": "Passing the Turing Test demonstrates <em>syntax<\/em> (symbol manipulation), not <em>semantics<\/em> (genuine understanding).", "k": "Syntax without semantics"}, {"id": 4, "p": "A", "q": "Name the two standard rebuttals to the Chinese Room.", "a": "The Systems Reply (the whole system understands) and the Robot Reply (embodiment confers understanding).", "k": "Systems Reply &amp; Robot Reply"}, {"id": 5, "p": "A", "q": "Which approach to AI did Russell &amp; Norvig adopt?", "a": "Acting rationally &mdash; the rational agent that takes the action expected to maximise goal achievement.", "k": "Acting rationally (rational agent)"}, {"id": 6, "p": "A", "q": "Distinguish strong vs. weak AI.", "a": "Strong (general) AI adapts across many situations; weak (narrow) AI performs one task well.", "k": "Strong = general, weak = narrow"}, {"id": 7, "p": "A", "q": "List Hintze's four types of AI.", "a": "Reactive machines, limited memory, theory of mind, self-awareness.", "k": "Reactive, limited memory, theory of mind, self-awareness"}, {"id": 8, "p": "A", "q": "Which Hintze type is today's leading edge?", "a": "Limited memory &mdash; e.g. self-driving cars using recent experience.", "k": "Limited memory"}, {"id": 9, "p": "A", "q": "When and where did computer-science-based AI begin?", "a": "The Dartmouth Conference, 1956.", "k": "Dartmouth Conference, 1956"}, {"id": 10, "p": "A", "q": "What is an AI winter?", "a": "A recurring period of sharply reduced AI funding after inflated expectations go unmet.", "k": "A period of reduced AI funding"}, {"id": 11, "p": "A", "q": "Name the five tribes of machine learning.", "a": "Symbolists, Connectionists, Evolutionaries, Bayesians, Analogizers.", "k": "Symbolists, Connectionists, Evolutionaries, Bayesians, Analogizers"}, {"id": 12, "p": "A", "q": "Which tribe relies on back-propagation?", "a": "Connectionists (origin: neuroscience).", "k": "Connectionists"}, {"id": 13, "p": "A", "q": "Which tribe relies on genetic programming?", "a": "Evolutionaries (origin: evolutionary biology).", "k": "Evolutionaries"}, {"id": 14, "p": "A", "q": "What is the singularity, per the notes?", "a": "A master algorithm uniting all five tribes of learning into one system that can learn anything.", "k": "Master algorithm uniting the five tribes"}, {"id": 15, "p": "B", "q": "What four components define a search problem?", "a": "Initial state, operators, goal test, and solution cost.", "k": "Initial state, operators, goal test, solution cost"}, {"id": 16, "p": "B", "q": "Name the six environment axes.", "a": "Static/dynamic, fully/partially observable, discrete/continuous, deterministic/stochastic, episodic/sequential, single/multi-agent.", "k": "Static, observable, discrete, deterministic, episodic, single-agent"}, {"id": 17, "p": "B", "q": "What queue discipline does BFS emulate?", "a": "A FIFO queue &mdash; children added to the end of the open list.", "k": "FIFO queue"}, {"id": 18, "p": "B", "q": "What stack discipline does DFS emulate?", "a": "A LIFO stack &mdash; children added to the front of the open list.", "k": "LIFO stack"}, {"id": 19, "p": "B", "q": "Time &amp; space complexity of BFS?", "a": "O(b<sup>d+1<\/sup>) for both.", "k": "O(b^(d+1))"}, {"id": 20, "p": "B", "q": "Space complexity of DFS?", "a": "O(b&middot;m) &mdash; linear in depth, the reason it beats BFS on memory.", "k": "O(b&middot;m)"}, {"id": 21, "p": "B", "q": "Which uninformed strategy is optimal?", "a": "Uniform-Cost Search &mdash; the first goal reached is least-cost.", "k": "Uniform-Cost Search"}, {"id": 22, "p": "B", "q": "What does UCS sort the open list by?", "a": "Path cost so far, g(n).", "k": "g(n), path cost so far"}, {"id": 23, "p": "B", "q": "Which strategy unites DFS's space with BFS's completeness?", "a": "Iterative Deepening Search (IDS) &mdash; repeated depth-limited DFS.", "k": "Iterative Deepening Search"}, {"id": 24, "p": "B", "q": "Time &amp; space complexity of bidirectional search?", "a": "O(b<sup>d/2<\/sup>).", "k": "O(b^(d/2))"}, {"id": 25, "p": "B", "q": "Difference between complete and optimal?", "a": "Complete = finds a solution if one exists; optimal = finds the least-cost solution.", "k": "Complete = finds one; optimal = least-cost"}, {"id": 26, "p": "C", "q": "What is h(n)?", "a": "The heuristic &mdash; the estimated cost (distance) from state n to the nearest goal.", "k": "Estimated cost from n to goal"}, {"id": 27, "p": "C", "q": "What is g(n)?", "a": "The known cost from the initial state to node n.", "k": "Known cost from start to n"}, {"id": 28, "p": "C", "q": "Define an admissible heuristic.", "a": "One that never overestimates the true cost to the nearest goal.", "k": "Never overestimates true cost"}, {"id": 29, "p": "C", "q": "What does Best-First Search sort by?", "a": "h(n) alone.", "k": "h(n) alone"}, {"id": 30, "p": "C", "q": "How does hill climbing differ from best-first search?", "a": "It keeps only the lowest-h state &mdash; an irrevocable commitment; best-first is tentative.", "k": "Irrevocable, keeps only lowest-h"}, {"id": 31, "p": "C", "q": "Hill climbing's failure modes?", "a": "Local maxima/minima (foothills), ridges, and plateaus; it is not complete.", "k": "Local maxima, ridges, plateaus"}, {"id": 32, "p": "C", "q": "What is the beam width n?", "a": "The number of best nodes kept on the open list; n=1 is hill climbing, n=&infin; is best-first.", "k": "Number of nodes kept (n)"}, {"id": 33, "p": "C", "q": "A* evaluation function?", "a": "f(n) = g(n) + h(n).", "k": "f(n) = g(n) + h(n)"}, {"id": 34, "p": "C", "q": "When does A* return an optimal solution?", "a": "When h(n) is admissible (never overestimates).", "k": "When h is admissible"}, {"id": 35, "p": "C", "q": "Overestimate or underestimate &mdash; which is worse for A*?", "a": "Overestimating &mdash; it can steer A* past the optimal goal.", "k": "Overestimating"}, {"id": 36, "p": "C", "q": "What does IDA* threshold on?", "a": "An f-cost threshold instead of a depth threshold; space falls to O(m).", "k": "f-cost threshold"}, {"id": 37, "p": "C", "q": "What is RBFS?", "a": "Recursive Best-First Search &mdash; a linear-space variant of A* that remembers the best alternative subtree.", "k": "Recursive Best-First Search"}, {"id": 38, "p": "C", "q": "What does SMA* do when memory fills?", "a": "Drops the worst leaf (highest f) and backs its value up to the parent.", "k": "Drops worst leaf, backs up f"}, {"id": 39, "p": "C", "q": "Define heuristic dominance.", "a": "If h&#8322;(n) &ge; h&#8321;(n) for all n (both admissible), h&#8322; dominates h&#8321; &mdash; more informed, expands fewer nodes.", "k": "h&#8322; &ge; h&#8321; &rArr; h&#8322; dominates"}, {"id": 40, "p": "C", "q": "How do you generate an admissible heuristic?", "a": "Solve a relaxed version of the problem; its optimal cost is admissible for the original.", "k": "Relax the problem"}, {"id": 41, "p": "C", "q": "Among admissible heuristics, which perform best?", "a": "Those producing higher h-values (closer to the true cost).", "k": "Higher h-values"}, {"id": 42, "p": "D", "q": "What does simulated annealing add to hill climbing?", "a": "A temperature schedule &mdash; worse moves are accepted with a probability that falls as temperature cools.", "k": "Temperature schedule"}, {"id": 43, "p": "D", "q": "When is simulated annealing guaranteed to reach the best state?", "a": "If the temperature is decreased slowly enough.", "k": "If cooled slowly enough"}, {"id": 44, "p": "D", "q": "Two essential components of a GA?", "a": "Survival of the fittest and recombination.", "k": "Survival of the fittest + recombination"}, {"id": 45, "p": "D", "q": "GA terms: chromosome and gene?", "a": "Chromosome = a candidate solution (usually a binary string); gene = a single bit/attribute.", "k": "Chromosome = solution, gene = bit"}, {"id": 46, "p": "D", "q": "Three GA operators?", "a": "Reproduction (selection), crossover, and mutation.", "k": "Reproduction, crossover, mutation"}, {"id": 47, "p": "D", "q": "What is the biased roulette wheel?", "a": "Fitness-proportional selection &mdash; each chromosome's wheel slice is sized by its fitness.", "k": "Fitness-proportional selection"}, {"id": 48, "p": "D", "q": "What is crossover?", "a": "Pick two parents and a cross site, then cut and splice their segments.", "k": "Cut-and-splice two parents"}, {"id": 49, "p": "D", "q": "Role of mutation in a GA?", "a": "Randomly flip a bit with small probability &mdash; maintains diversity and escapes local minima.", "k": "Random bit-flip for diversity"}, {"id": 50, "p": "D", "q": "What is elitism?", "a": "Copy the top-k chromosomes unchanged into the next generation so the best is never lost.", "k": "Copy best k unchanged"}, {"id": 51, "p": "D", "q": "What is inversion?", "a": "Reverse the order of a chromosome segment &mdash; preserves building blocks, improves gene ordering.", "k": "Reverse a chromosome segment"}, {"id": 52, "p": "D", "q": "What is Hamming distance?", "a": "The number of positions at which two strings differ &mdash; the standard binary diversity measure.", "k": "Count of differing positions"}, {"id": 53, "p": "D", "q": "Hamming distance of 011010 and 110011?", "a": "3.", "k": "3"}, {"id": 54, "p": "D", "q": "Crossover vs. mutation roles?", "a": "Crossover = primary, recombines existing material; mutation = minor, introduces new material.", "k": "Crossover recombines, mutation introduces"}, {"id": 55, "p": "E", "q": "Define entailment (KB &#8872; &alpha;).", "a": "&alpha; is true in <em>all<\/em> models in which KB is true.", "k": "&alpha; true in all models where KB is true"}, {"id": 56, "p": "E", "q": "What proves entailment in the Wumpus world?", "a": "Model checking &mdash; enumerating all possible models.", "k": "Model checking"}, {"id": 57, "p": "E", "q": "How many models for 3 unknown pit-squares?", "a": "2&sup3; = 8.", "k": "8"}, {"id": 58, "p": "E", "q": "Two commitments characterising a logic?", "a": "Ontological (what exists) and epistemological (states of knowledge).", "k": "Ontological &amp; epistemological"}, {"id": 59, "p": "E", "q": "Ontological commitment of first-order logic?", "a": "Facts, objects, and relations.", "k": "Facts, objects, relations"}, {"id": 60, "p": "E", "q": "Epistemological commitment of probability theory?", "a": "A degree of belief in [0, 1].", "k": "Degree of belief in [0,1]"}, {"id": 61, "p": "E", "q": "What is a single row of a truth table?", "a": "One interpretation (model) of the propositions.", "k": "One interpretation / model"}, {"id": 62, "p": "E", "q": "What does it mean that a logic is monotonic?", "a": "Entailed sentences are preserved as more knowledge is added.", "k": "Conclusions preserved as knowledge grows"}, {"id": 63, "p": "E", "q": "State modus ponens.", "a": "From &alpha; and &alpha;&rarr;&beta;, infer &beta;.", "k": "&alpha;, &alpha;&rarr;&beta; &#8866; &beta;"}, {"id": 64, "p": "E", "q": "State unit resolution.", "a": "From &alpha;&or;&beta; and &not;&beta;, infer &alpha;.", "k": "&alpha;&or;&beta;, &not;&beta; &#8866; &alpha;"}, {"id": 65, "p": "E", "q": "Two proof methods in propositional logic?", "a": "Model checking (truth-table enumeration) and application of inference rules.", "k": "Model checking &amp; inference rules"}, {"id": 66, "p": "E", "q": "What does FOPC add over propositional logic?", "a": "Objects, relations, and quantifiers (&forall;, &exist;).", "k": "Objects, relations, quantifiers"}, {"id": 67, "p": "E", "q": "Problem with inference-as-search via AI/UE/MP?", "a": "A huge branching factor &mdash; motivating a single powerful rule, resolution.", "k": "Huge branching factor"}, {"id": 68, "p": "F", "q": "When are two expressions unifiable?", "a": "When a substitution (binding) list exists that makes them identical.", "k": "A unifying substitution exists"}, {"id": 69, "p": "F", "q": "Three valid substitution types in unification?", "a": "Variable&rarr;constant, variable&rarr;variable, variable&rarr;function (subject to the occurs check).", "k": "var&rarr;constant, var&rarr;var, var&rarr;function"}, {"id": 70, "p": "F", "q": "What is the MGU?", "a": "The most general unifier &mdash; the least-constraining substitution that unifies two expressions.", "k": "Most general unifier"}, {"id": 71, "p": "F", "q": "Why do R(?x) and R(F(?x)) fail to unify?", "a": "The occurs check &mdash; ?x occurs inside F(?x).", "k": "Occurs check fails"}, {"id": 72, "p": "F", "q": "Which program used unification to mimic a psychiatrist?", "a": "ELIZA (a Rogerian psychiatrist; PARRY was the paranoid counterpart).", "k": "ELIZA"}, {"id": 73, "p": "F", "q": "State the resolution rule.", "a": "From (a&or;b) and (&not;b&or;c), infer (a&or;c).", "k": "(a&or;b),(&not;b&or;c) &#8866; (a&or;c)"}, {"id": 74, "p": "F", "q": "What signals a successful resolution proof?", "a": "Deriving the empty clause [] &mdash; a contradiction.", "k": "The empty clause []"}, {"id": 75, "p": "F", "q": "First step of a resolution proof?", "a": "Convert to clausal form and add the negated goal.", "k": "Negate the goal, add to clauses"}, {"id": 76, "p": "F", "q": "Name three resolution strategies.", "a": "Set of Support, Linear Format, and Unit Resolution / Unit Preference.", "k": "Set of Support, Linear, Unit"}, {"id": 77, "p": "F", "q": "Why prefer a unit clause as a parent?", "a": "Resolving with a unit yields a smaller resolvent &mdash; reaching the empty clause faster.", "k": "Yields smaller resolvents"}, {"id": 78, "p": "F", "q": "Most common resolution error?", "a": "Forgetting to negate the goal before resolving.", "k": "Forgetting to negate the goal"}, {"id": 79, "p": "G", "q": "State Mitchell's definition of learning (T, P, E).", "a": "A program learns from experience E w.r.t. task T and measure P if its performance at T, measured by P, improves with E.", "k": "Improves at T (by P) with E"}, {"id": 80, "p": "G", "q": "Supervised vs. unsupervised &mdash; key difference?", "a": "Supervised uses labelled data (learns f(X)&rarr;Y); unsupervised uses unlabelled data (discovers structure).", "k": "Labelled vs. unlabelled data"}, {"id": 81, "p": "G", "q": "Regression vs. classification?", "a": "Regression predicts continuous values; classification predicts categories.", "k": "Continuous vs. categorical output"}, {"id": 82, "p": "G", "q": "Name two unsupervised algorithms.", "a": "K-Means, DBSCAN, hierarchical clustering, or PCA.", "k": "K-Means / DBSCAN / PCA"}, {"id": 83, "p": "G", "q": "Typical train/test split?", "a": "80% training / 20% testing.", "k": "80 / 20"}, {"id": 84, "p": "G", "q": "Confusion-matrix accuracy formula?", "a": "(TP + TN) / (TP + FP + TN + FN).", "k": "(TP+TN) / total"}, {"id": 85, "p": "G", "q": "What does FN mean?", "a": "False Negative &mdash; an actual positive predicted as negative.", "k": "False Negative"}, {"id": 86, "p": "G", "q": "High bias leads to?", "a": "Underfitting &mdash; the model is too simple and misses patterns (poor on train and test).", "k": "Underfitting"}, {"id": 87, "p": "G", "q": "High variance leads to?", "a": "Overfitting &mdash; the model memorises noise (great on train, poor on test).", "k": "Overfitting"}, {"id": 88, "p": "G", "q": "Expected-error decomposition?", "a": "Bias&sup2; + Variance + Irreducible Error.", "k": "Bias&sup2; + Variance + Irreducible"}, {"id": 89, "p": "G", "q": "What does the No Free Lunch theorem say?", "a": "Averaged over all problems, every learner has equal accuracy &mdash; no universally best algorithm.", "k": "No universally best learner"}, {"id": 90, "p": "G", "q": "First and last stages of the ML workflow?", "a": "Problem definition (first) and monitoring (last).", "k": "Problem definition &rarr; Monitoring"}, {"id": 91, "p": "H", "q": "Linear-regression hypothesis (one variable)?", "a": "h<sub>&theta;<\/sub>(x) = &theta;<sub>0<\/sub> + &theta;<sub>1<\/sub>x.", "k": "h&theta;(x) = &theta;&#8320; + &theta;&#8321;x"}, {"id": 92, "p": "H", "q": "Linear-regression cost function?", "a": "J(&theta;) = (1/2m) &sum; (h<sub>&theta;<\/sub>(x<sup>i<\/sup>) &minus; y<sup>i<\/sup>)&sup2;.", "k": "(1/2m)&sum;(h&theta;(x)&minus;y)&sup2;"}, {"id": 93, "p": "H", "q": "Gradient-descent update rule?", "a": "&theta;<sub>j<\/sub> := &theta;<sub>j<\/sub> &minus; &alpha; &part;J/&part;&theta;<sub>j<\/sub>, updated simultaneously.", "k": "&theta;&#x2C7C; := &theta;&#x2C7C; &minus; &alpha; &part;J/&part;&theta;&#x2C7C;"}, {"id": 94, "p": "H", "q": "GD update for &theta;<sub>1<\/sub> in linear regression? <em>(reconstructed)<\/em>", "a": "&theta;<sub>1<\/sub> := &theta;<sub>1<\/sub> &minus; &alpha;(1/m) &sum; (h<sub>&theta;<\/sub>(x<sup>i<\/sup>) &minus; y<sup>i<\/sup>)&middot;x<sup>i<\/sup>.", "k": "&theta;&#8321; := &theta;&#8321; &minus; &alpha;(1/m)&sum;(h&minus;y)x"}, {"id": 95, "p": "H", "q": "Role of the learning rate &alpha;?", "a": "Controls step size &mdash; too small and convergence crawls, too large and it overshoots.", "k": "Controls step size"}, {"id": 96, "p": "H", "q": "Why does GD reach the global minimum for linear regression?", "a": "The squared-error cost surface is convex (a single bowl).", "k": "Convex cost surface"}, {"id": 97, "p": "H", "q": "Sigmoid activation formula? <em>(reconstructed)<\/em>", "a": "g(z) = 1 / (1 + e<sup>&minus;z<\/sup>).", "k": "g(z) = 1/(1+e&#8315;&#7611;)"}, {"id": 98, "p": "H", "q": "What is forward propagation?", "a": "Computing each layer's activations from the previous layer's, layer by layer, to the output.", "k": "Layer-by-layer activation"}, {"id": 99, "p": "H", "q": "Why can't a single sigmoid unit compute XNOR?", "a": "XNOR is not linearly separable &mdash; it needs a hidden layer.", "k": "Not linearly separable"}, {"id": 100, "p": "H", "q": "How are multi-class labels encoded?", "a": "As one-hot vectors (a 1 in the true class's position).", "k": "One-hot vectors"}, {"id": 101, "p": "H", "q": "Output-layer error term in back-propagation? <em>(reconstructed)<\/em>", "a": "&delta;<sup>(L)<\/sup> = a<sup>(L)<\/sup> &minus; y.", "k": "&delta;&#7488; = a&#7488; &minus; y"}, {"id": 102, "p": "H", "q": "Which layer has no back-prop error term?", "a": "The input layer &mdash; those are the given features.", "k": "Input layer"}, {"id": 103, "p": "H", "q": "What does an SVM maximise?", "a": "The margin &mdash; the widest separation between classes (the large-margin classifier).", "k": "The margin"}, {"id": 104, "p": "H", "q": "Effect of a large C in an SVM? <em>(reconstructed)<\/em>", "a": "Weights the data term heavily (small &lambda;) &mdash; risks overfitting.", "k": "Heavy data term, risks overfitting"}, {"id": 105, "p": "H", "q": "SVM prediction rule? <em>(reconstructed)<\/em>", "a": "Predict 1 if &theta;<sup>T<\/sup>x &ge; 0, else 0.", "k": "1 if &theta;&#7488;x &ge; 0 else 0"}, {"id": 106, "p": "I", "q": "What makes a network 'deep'?", "a": "Many stacked hidden layers learning a feature hierarchy automatically.", "k": "Many hidden layers"}, {"id": 107, "p": "I", "q": "Main training difficulty for DNNs?", "a": "Vanishing / exploding gradients through many layers.", "k": "Vanishing / exploding gradients"}, {"id": 108, "p": "I", "q": "State the Universal Approximation Theorem.", "a": "A network with one hidden layer of finitely many neurons and a suitable activation can approximate any continuous function on a compact set.", "k": "One hidden layer approximates any continuous fn"}, {"id": 109, "p": "I", "q": "Is the UAT constructive?", "a": "No &mdash; it is existential; it does not guarantee the network can be easily trained.", "k": "Existential, not constructive"}, {"id": 110, "p": "I", "q": "What is the convolution feature map?", "a": "The matrix of summed element-wise products produced as a filter slides across the image.", "k": "Output of sliding the filter"}, {"id": 111, "p": "I", "q": "What is stride?", "a": "The number of pixels a filter shifts each step; a larger stride yields a smaller output.", "k": "Filter shift per step"}, {"id": 112, "p": "I", "q": "What is zero padding?", "a": "Adding a border of zeros so the filter can cover edges without shrinking the map too much.", "k": "Border of zeros"}, {"id": 113, "p": "I", "q": "Two benefits of convolution?", "a": "Parameter sharing (one filter across the image) and local pattern capture (small filters).", "k": "Parameter sharing + locality"}, {"id": 114, "p": "I", "q": "What does an RNN maintain?", "a": "A hidden state carrying information from previous time steps.", "k": "A hidden state"}, {"id": 115, "p": "I", "q": "Three LSTM gates?", "a": "Input, forget, and output gates.", "k": "Input, forget, output gates"}, {"id": 116, "p": "I", "q": "Two components of a GAN?", "a": "A generator (synthesises data) and a discriminator (distinguishes real from fake).", "k": "Generator &amp; discriminator"}, {"id": 117, "p": "I", "q": "Disadvantage of ReLU?", "a": "Dead neurons &mdash; once the input is always negative the derivative is 0 and the unit stops updating.", "k": "Dead neurons"}, {"id": 118, "p": "I", "q": "How does Leaky / Parametric ReLU help?", "a": "A small negative slope keeps neurons from dying.", "k": "Small negative slope"}, {"id": 119, "p": "I", "q": "Which activations suffer the vanishing-gradient problem?", "a": "Sigmoid and tanh (in deep networks).", "k": "Sigmoid &amp; tanh"}];
+const PARTS = {"A": "Foundations", "B": "Uninformed Search", "C": "Informed Search", "D": "Local Search &amp; GA", "E": "KR &amp; Logic", "F": "Logical Reasoning", "G": "ML Basics", "H": "ML Algorithms", "I": "Deep Learning"};
+
+const LS_MASTER='csc830_fc_mastered';
+const LS_QUIZ='csc830_fc_quizstats';
+let mode='study';
+let filter='ALL';
+let deck=[];           // current filtered/ordered list of card ids
+let idx=0;
+let flipped=false;
+let mastered=loadSet(LS_MASTER);
+let quizStats=loadObj(LS_QUIZ,{correct:0,total:0});
+let quizOrder=[], quizPos=0, answered=false;
+
+function loadSet(k){try{return new Set(JSON.parse(localStorage.getItem(k)||'[]'));}catch(e){return new Set();}}
+function saveSet(k,s){try{localStorage.setItem(k,JSON.stringify([...s]));}catch(e){}}
+function loadObj(k,d){try{return Object.assign(d,JSON.parse(localStorage.getItem(k)||'{}'));}catch(e){return d;}}
+function saveObj(k,o){try{localStorage.setItem(k,JSON.stringify(o));}catch(e){}}
+
+function byPart(p){return CARDS.filter(c=>filter==='ALL'||c.p===filter);}
+
+function buildFilters(){
+  const f=document.getElementById('filters');
+  let html='<button class="chip active" data-p="ALL" onclick="setFilter(\'ALL\',this)">ALL</button>';
+  Object.keys(PARTS).forEach(k=>{
+    html+='<button class="chip" data-p="'+k+'" onclick="setFilter(\''+k+'\',this)">'+k+'</button>';
+  });
+  f.innerHTML=html;
+}
+function setFilter(p,el){
+  filter=p;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  if(mode==='study'){ buildDeck(); render(); } else { restartQuiz(); }
+  updateProgress();
+}
+
+function setMode(m){
+  mode=m;
+  document.getElementById('m-study').classList.toggle('active',m==='study');
+  document.getElementById('m-quiz').classList.toggle('active',m==='quiz');
+  document.getElementById('study').style.display = m==='study'?'block':'none';
+  document.getElementById('quiz').style.display  = m==='quiz'?'block':'none';
+  document.getElementById('proglabel').textContent = m==='study'?'Mastered':'Quiz score';
+  if(m==='study'){ buildDeck(); render(); } else { restartQuiz(); }
+  updateProgress();
+}
+
+/* ---------- STUDY ---------- */
+function buildDeck(){ deck=byPart(filter).map(c=>c.id); idx=0; flipped=false; }
+function card(){ return CARDS.find(c=>c.id===deck[idx]); }
+function render(){
+  if(!deck.length)return;
+  const c=card();
+  document.getElementById('flip').classList.remove('flipped'); flipped=false;
+  document.getElementById('s-ptag-f').innerHTML='Part '+c.p+' &middot; '+PARTS[c.p];
+  document.getElementById('s-ptag-b').innerHTML='Answer';
+  document.getElementById('s-q').innerHTML=c.q;
+  document.getElementById('s-a').innerHTML=c.a;
+  const done=mastered.has(c.id)?' &#10003; mastered':'';
+  document.getElementById('s-counter').innerHTML='Card '+(idx+1)+' of '+deck.length+done;
+}
+function toggleFlip(){ flipped=!flipped; document.getElementById('flip').classList.toggle('flipped',flipped); }
+function nextCard(){ idx=(idx+1)%deck.length; render(); }
+function prevCard(){ idx=(idx-1+deck.length)%deck.length; render(); }
+function mark(ok){
+  const c=card();
+  if(ok) mastered.add(c.id); else mastered.delete(c.id);
+  saveSet(LS_MASTER,mastered); updateProgress();
+  setTimeout(nextCard,180);
+}
+function shuffleDeck(){ for(let i=deck.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[deck[i],deck[j]]=[deck[j],deck[i]];} idx=0; render(); }
+function resetMastery(){
+  byPart(filter).forEach(c=>mastered.delete(c.id));
+  saveSet(LS_MASTER,mastered); updateProgress(); render();
+}
+
+/* ---------- QUIZ ---------- */
+function makeOptions(c){
+  const pool=CARDS.filter(o=>o.p===c.p && o.id!==c.id);
+  const distract=[];
+  const seen=new Set([c.k]);
+  while(distract.length<3 && (pool.length+CARDS.length)>0){
+    let src = (distract.length<pool.length)? pool : CARDS;
+    const o=src[Math.floor(Math.random()*src.length)];
+    if(o && !seen.has(o.k) && o.id!==c.id){ seen.add(o.k); distract.push(o.k); }
+    if(seen.size>CARDS.length) break;
+  }
+  const opts=[c.k,...distract];
+  for(let i=opts.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[opts[i],opts[j]]=[opts[j],opts[i]];}
+  return opts;
+}
+function restartQuiz(){
+  quizOrder=byPart(filter).map(c=>c.id);
+  for(let i=quizOrder.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[quizOrder[i],quizOrder[j]]=[quizOrder[j],quizOrder[i]];}
+  quizPos=0; renderQuiz();
+}
+function renderQuiz(){
+  answered=false;
+  document.getElementById('q-next').style.display='none';
+  document.getElementById('q-fb').textContent='';
+  document.getElementById('q-fb').className='feedback';
+  if(quizPos>=quizOrder.length){
+    document.getElementById('q-ptag').textContent='Complete';
+    document.getElementById('q-q').innerHTML='Quiz complete for this filter &mdash; '+quizScoreThisRun()+' correct out of '+quizOrder.length+'.';
+    document.getElementById('q-opts').innerHTML='';
+    document.getElementById('q-score').innerHTML=lifetimeLine();
+    return;
+  }
+  const c=CARDS.find(x=>x.id===quizOrder[quizPos]);
+  document.getElementById('q-ptag').innerHTML='Part '+c.p+' &middot; '+PARTS[c.p]+' &middot; Q'+(quizPos+1)+'/'+quizOrder.length;
+  document.getElementById('q-q').innerHTML=c.q;
+  const opts=makeOptions(c);
+  const box=document.getElementById('q-opts'); box.innerHTML='';
+  opts.forEach(o=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.innerHTML=o;
+    b.onclick=()=>choose(b,o,c.k,c.a);
+    box.appendChild(b);
+  });
+  document.getElementById('q-score').innerHTML=lifetimeLine();
+  thisRun=thisRun||{c:0};
+}
+let thisRun={c:0};
+function quizScoreThisRun(){return thisRun.c;}
+function choose(btn,picked,correct,ans){
+  if(answered)return; answered=true;
+  const right=(picked===correct);
+  quizStats.total++; if(right){quizStats.correct++; thisRun.c++;}
+  saveObj(LS_QUIZ,quizStats);
+  document.querySelectorAll('.opt').forEach(o=>{
+    o.classList.add('disabled');
+    if(o.innerHTML===correct)o.classList.add('correct');
+  });
+  if(!right)btn.classList.add('wrong');
+  const fb=document.getElementById('q-fb');
+  fb.className='feedback '+(right?'r':'w');
+  fb.innerHTML=right?'&#10003; Correct.':'&#10007; Answer: '+ans;
+  document.getElementById('q-next').style.display='inline-block';
+  document.getElementById('q-score').innerHTML=lifetimeLine();
+}
+function nextQuiz(){ quizPos++; renderQuiz(); }
+
+/* ---------- PROGRESS ---------- */
+function updateProgress(){
+  let pct=0,label='';
+  if(mode==='study'){
+    const set=byPart(filter); const done=set.filter(c=>mastered.has(c.id)).length;
+    pct=set.length?Math.round(100*done/set.length):0;
+    document.getElementById('progpct').textContent=pct+'%';
+  }else{
+    pct=quizStats.total?Math.round(100*quizStats.correct/quizStats.total):0;
+    document.getElementById('progpct').textContent=quizStats.correct+'/'+quizStats.total;
+  }
+  document.getElementById('progbar').style.width=pct+'%';
+}
+function lifetimeLine(){
+  const p=quizStats.total?Math.round(100*quizStats.correct/quizStats.total):0;
+  return 'This run: '+thisRun.c+' &middot; Lifetime: '+quizStats.correct+'/'+quizStats.total+' ('+p+'%)';
+}
+function hardReset(){ localStorage.removeItem(LS_MASTER); localStorage.removeItem(LS_QUIZ); mastered=new Set(); quizStats={correct:0,total:0}; thisRun={c:0}; updateProgress(); if(mode==='study')render(); else restartQuiz(); }
+
+/* keyboard */
+document.addEventListener('keydown',e=>{
+  if(mode!=='study')return;
+  if(e.code==='Space'){e.preventDefault();toggleFlip();}
+  else if(e.code==='ArrowRight')nextCard();
+  else if(e.code==='ArrowLeft')prevCard();
+});
+
+buildFilters(); buildDeck(); render(); updateProgress();
+</script>
+</body>
+</html>
